@@ -1,0 +1,82 @@
+
+k=0
+s=-10
+while IFS=' ' read -r x0 y0                                                                                                                                 
+do
+((k=$k+1))
+  x[k]=$x0
+  y[k]=$y0
+
+
+done < SOURCE.all 
+for((i=1;i<=k;i++))
+do
+((s=$s+10))
+#result=$(($k % 3))
+
+echo ${x[i]} ${y[i]}
+echo -n >SOURCE
+echo "## Source $k                                                                                                                                                                                           ">>SOURCE
+echo "source_surf                     = .true.        # source inside the medium, or source automatically moved exactly at the surface by the solver                                                        ">>SOURCE
+echo "xs                              = ${x[i]}          # source location x in meters                                                                                                                            ">>SOURCE
+echo "zs                              = ${y[i]}          # source location z in meters (zs is ignored if source_surf is set to true, it is replaced with the topography height)                                  ">>SOURCE
+echo "## Source type parameters:                                                                                                                                                                             ">>SOURCE
+echo "#  1 = elastic force or acoustic pressure                                                                                                                                                              ">>SOURCE
+echo "#  2 = moment tensor                                                                                                                                                                                   ">>SOURCE
+echo "# or Initial field type (when initialfield set in Par_file):                                                                                                                                           ">>SOURCE
+echo "# For a plane wave including converted and reflected waves at the free surface:                                                                                                                        ">>SOURCE
+echo "#  1 = P wave,                                                                                                                                                                                         ">>SOURCE
+echo "#  2 = S wave,                                                                                                                                                                                         ">>SOURCE
+echo "#  3 = Rayleigh wave                                                                                                                                                                                   ">>SOURCE
+echo "# For a plane wave without converted nor reflected waves at the free surface, i.e. with the incident wave only:                                                                                        ">>SOURCE
+echo "#  4 = P wave,                                                                                                                                                                                         ">>SOURCE
+echo "#  5 = S wave                                                                                                                                                                                          ">>SOURCE
+echo "# For initial mode displacement:                                                                                                                                                                       ">>SOURCE
+echo "#  6 = mode (2,3) of a rectangular membrane                                                                                                                                                            ">>SOURCE
+echo "source_type                     = 1                                                                                                                                                                    ">>SOURCE
+echo "# Source time function:                                                                                                                                                                                ">>SOURCE
+echo "# In the case of a source located in an acoustic medium,                                                                                                                                               ">>SOURCE
+echo "# to get pressure for a Ricker in the seismograms, here we need to select a Gaussian for the potential Chi                                                                                             ">>SOURCE
+echo "# used as a source, rather than a Ricker, because pressure = - Chi_dot_dot.                                                                                                                            ">>SOURCE
+echo "# This is true both when USE_TRICK_FOR_BETTER_PRESSURE is set to .true. or to .false.                                                                                                                  ">>SOURCE
+echo "# Options:                                                                                                                                                                                             ">>SOURCE
+echo "#  1 = second derivative of a Gaussian (a.k.a. Ricker),                                                                                                                                                ">>SOURCE
+echo "#  2 = first derivative of a Gaussian,                                                                                                                                                                 ">>SOURCE
+echo "#  3 = Gaussian,                                                                                                                                                                                       ">>SOURCE
+echo "#  4 = Dirac,                                                                                                                                                                                          ">>SOURCE
+echo "#  5 = Heaviside (4 and 5 will produce noisy recordings because of frequencies above the mesh resolution limit),                                                                                       ">>SOURCE
+echo "#  6 = ocean acoustics type I,                                                                                                                                                                         ">>SOURCE
+echo "#  7 = ocean acoustics type II,                                                                                                                                                                        ">>SOURCE
+echo "#  8 = external source time function = 8 (source read from file),                                                                                                                                      ">>SOURCE
+echo "#  9 = burst,                                                                                                                                                                                          ">>SOURCE
+echo "# 10 = Sinus source time function,                                                                                                                                                                     ">>SOURCE
+echo "# 11 = Marmousi Ormsby wavelet                                                                                                                                                                         ">>SOURCE
+echo "time_function_type              = 1                                                                                                                                                                    ">>SOURCE
+echo "# If time_function_type == 8, enter below the custom source file to read (two columns file with time and amplitude) :                                                                                  ">>SOURCE
+echo "# (For the moment dt must be equal to the dt of the simulation. File name cannot exceed 150 characters)                                                                                                ">>SOURCE
+echo "# IMPORTANT: do NOT put quote signs around the file name, just put the file name itself otherwise the run will stop                                                                                    ">>SOURCE
+echo "name_of_source_file             = YYYYYYYY       # Only for option 8 : file containing the source wavelet                                                                                              ">>SOURCE
+echo "burst_band_width                = 0.             # Only for option 9 : band width of the burst                                                                                                         ">>SOURCE
+echo "f0                              = 20           # dominant source frequency (Hz) if not Dirac or Heaviside                                                                                             ">>SOURCE
+echo "tshift                          = 0            # time shift when multi sources (if one source, must be zero)                                                                                          ">>SOURCE
+echo "## Force source                                                                                                                                                                                        ">>SOURCE
+echo "# angle of the source (for a force only); for a plane wave, this is the incidence angle; for moment tensor sources this is unused                                                                      ">>SOURCE
+echo "anglesource                     = 0.                                                                                                                                                                   ">>SOURCE
+echo "## Moment tensor                                                                                                                                                                                       ">>SOURCE
+echo "# The components of a moment tensor source must be given in N.m, not in dyne.cm as in the DATA/CMTSOLUTION source file of the 3D version of the code.                                                  ">>SOURCE
+echo "Mxx                             = 1.             # Mxx component (for a moment tensor source only)                                                                                                     ">>SOURCE
+echo "Mzz                             = 1.             # Mzz component (for a moment tensor source only)                                                                                                     ">>SOURCE
+echo "Mxz                             = 0.             # Mxz component (for a moment tensor source only)                                                                                                     ">>SOURCE
+echo "## Amplification (factor to amplify source time function)                                                                                                                                              ">>SOURCE
+echo "factor                          = 1.d15          # amplification factor                                                                                                                                ">>SOURCE
+echo "## Moving source parameters                                                                                                                                                                            ">>SOURCE
+echo "vx                              = 0.0            # Horizontal source velocity (m/s)                                                                                                                    ">>SOURCE
+echo "vz                              = 0.0            # Vertical source velocity (m/s)                                                                                                                      ">>SOURCE
+
+
+mv SOURCE DATA
+mpiexec.exe -n 6 specfem2D.exe 
+mv OUTPUT_FILES/Uz_file_single_d.su ${i}Uz_file_single_d.su
+mv OUTPUT_FILES/Ux_file_single_d.su ${i}Ux_file_single_d.su
+done
+
